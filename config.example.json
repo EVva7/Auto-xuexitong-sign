@@ -6,5 +6,7 @@
     "address": "YOUR_ADDRESS",
     "latitude": ["32.2829260000"],
     "longitude": ["43.9237990000"],
-    "picname": [""]
+    "picname": [""],
+    "retry_times": [3],
+    "sleep_time": 60
 }

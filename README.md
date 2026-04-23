@@ -19,6 +19,8 @@
 - ✅ 支持位置签到
 - ✅ 支持 Server酱 推送签到结果
 - ✅ 支持多用户
+- ✅ 签到日志记录
+- ✅ 失败自动重试
 
 ### 环境要求
 
@@ -57,7 +59,9 @@ cp config.example.json config.json
     "address": "签到地址",
     "latitude": ["纬度"],
     "longitude": ["经度"],
-    "picname": ["图片文件名"]
+    "picname": ["图片文件名"],
+    "retry_times": [3],
+    "sleep_time": 60
 }
 ```
 
@@ -73,11 +77,15 @@ cp config.example.json config.json
 | latitude | ❌ | 纬度 | 39.9042 |
 | longitude | ❌ | 经度 | 116.4074 |
 | picname | ❌ | 签到照片文件名 | photo.jpg |
+| retry_times | ❌ | 签到失败重试次数 | 3 |
+| sleep_time | ❌ | 轮询间隔（秒） | 60 |
 
 **说明：**
 - 所有配置项都可以配置多个用户，使用数组格式
 - 如果只有一个用户，可以只填一个值
 - SCKEY 用于微信推送签到结果，去 [Server酱](https://sc.ftqq.com/) 申请
+- retry_times: 签到失败后自动重试的次数，默认为3次
+- sleep_time: 每次轮询之间的等待时间，默认为60秒
 
 ### 使用方法
 
@@ -98,16 +106,33 @@ from xuexitongsign import main_handler
 main_handler(None, None)
 ```
 
+### 日志文件
+
+程序会自动生成以下日志文件：
+
+| 文件 | 说明 |
+|------|------|
+| `sign.log` | 运行日志，记录程序运行状态 |
+| `sign_history.json` | 签到历史，记录每次签到结果 |
+
 ### 常见问题
 
 **Q: 签到失败怎么办？**
-A: 检查账号密码是否正确，网络是否稳定。
+A: 程序会自动重试（默认3次），可在 config.json 中调整 `retry_times`。
 
 **Q: 如何后台运行？**
-A: Linux/Mac 使用 screen 或 nohup，Windows 使用任务计划。
+A: 
+- Linux/Mac: `nohup python xuexitongsign.py &`
+- 或使用 screen: `screen -S sign && python xuexitongsign.py`
+- Windows 使用任务计划或创建一个 `.bat` 文件
 
 **Q: 怎么获取经纬度？**
 A: 在地图应用上右键点击位置，选择"标注位置"即可看到坐标。
+
+**Q: 如何停止程序？**
+A: 
+- Linux/Mac: `pkill -f xuexitongsign.py`
+- 或按 `Ctrl + C`
 
 ### 注意事项
 
@@ -133,6 +158,8 @@ An automated sign-in tool for Xuexitong (Chaoxing) based on [yuban10703/chaoxing
 - ✅ Location sign-in support  
 - ✅ Server酱 (WeChat) push notification
 - ✅ Multi-user support
+- ✅ Sign-in logging
+- ✅ Auto retry on failure
 
 ### Requirements
 
@@ -171,7 +198,9 @@ Edit `config.json` with your information:
     "address": "sign_in_address",
     "latitude": ["latitude"],
     "longitude": ["longitude"],
-    "picname": ["photo_filename"]
+    "picname": ["photo_filename"],
+    "retry_times": [3],
+    "sleep_time": 60
 }
 ```
 
@@ -187,11 +216,15 @@ Edit `config.json` with your information:
 | latitude | ❌ | Latitude | 39.9042 |
 | longitude | ❌ | Longitude | 116.4074 |
 | picname | ❌ | Photo filename | photo.jpg |
+| retry_times | ❌ | Retry count on failure | 3 |
+| sleep_time | ❌ | Poll interval (seconds) | 60 |
 
 **Notes:**
 - All configs support multiple users in array format
 - For single user, use single value
 - SCKEY is for WeChat notifications, get it at [Server酱](https://sc.ftqq.com/)
+- retry_times: Number of auto retries on sign-in failure, default is 3
+- sleep_time: Wait time between polls, default is 60 seconds
 
 ### Usage
 
@@ -212,16 +245,33 @@ from xuexitongsign import main_handler
 main_handler(None, None)
 ```
 
+### Log Files
+
+The program automatically generates the following log files:
+
+| File | Description |
+|------|-------------|
+| `sign.log` | Runtime log, records program status |
+| `sign_history.json` | Sign-in history, records each sign-in result |
+
 ### FAQ
 
 **Q: Sign-in failed, what to do?**
-A: Check if username/password is correct and network is stable.
+A: The program will automatically retry (default 3 times). Adjust `retry_times` in config.json.
 
 **Q: How to run in background?**
-A: Linux/Mac: use screen or nohup. Windows: use Task Scheduler.
+A: 
+- Linux/Mac: `nohup python xuexitongsign.py &`
+- Or use screen: `screen -S sign && python xuexitongsign.py`
+- Windows: Task Scheduler or create a `.bat` file
 
 **Q: How to get coordinates?**
 A: Right-click on location in map apps to see coordinates.
+
+**Q: How to stop the program?**
+A: 
+- Linux/Mac: `pkill -f xuexitongsign.py`
+- Or press `Ctrl + C`
 
 ### Warnings
 
