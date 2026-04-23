@@ -1,0 +1,10 @@
+{
+    "username": ["YOUR_PHONE_NUMBER"],
+    "passwd": "YOUR_PASSWORD",
+    "SCKEY": ["YOUR_SERVERCHAN_KEY"],
+    "name": ["YOUR_DISPLAY_NAME"],
+    "address": "YOUR_ADDRESS",
+    "latitude": ["32.2829260000"],
+    "longitude": ["43.9237990000"],
+    "picname": [""]
+}
