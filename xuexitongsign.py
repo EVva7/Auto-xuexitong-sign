@@ -141,38 +141,48 @@ class XxSign():
         return cookie_t
 
     def get_course(self, cookie):
-        url = "http://mooc1-api.chaoxing.com/mycourse/backclazzdata"
+        url = "https://mobilelearn.chaoxing.com/v2/apis/class/getClassList"
         res = requests.get(url, headers=headers, cookies=cookie)
-        cdata = json.loads(res.text)
         
-        name = []
-        classid = []
-        courseid = []
-        
-        if cdata['result'] != 1:
-            log(f'用户 {self.index} 课程列表获取失败', 'ERROR')
-            return
-        
-        for item in cdata['channelList']:
-            if "course" not in item['content']:
-                continue
-            courseid.append(item['content']['course']['data'][0]['id'])
-            name.append(item['content']['course']['data'][0]['name'])
-            classid.append(item['content']['id'])
-        
-        allname.append(name)
-        allclassid.append(classid)
-        allcourseid.append(courseid)
-        log(f'用户 {self.index} 获取到 {len(name)} 门课程')
+        try:
+            data = json.loads(res.text)
+            name = []
+            classid = []
+            courseid = []
+            fid = 0
+            
+            if data.get('result') != 1 and not data.get('data'):
+                log(f'用户 {self.index} 课程列表获取失败: {data}', 'ERROR')
+                return
+            
+            class_list = data.get('data', {}).get('classInfo', [])
+            for item in class_list:
+                courseid.append(item.get('courseId', ''))
+                name.append(item.get('courseName', '未知课程'))
+                classid.append(item.get('classId', ''))
+                if item.get('fid'):
+                    fid = item['fid']
+            
+            allname.append(name)
+            allclassid.append(classid)
+            allcourseid.append(courseid)
+            cook[i]['fid'] = fid
+            log(f'用户 {self.index} 获取到 {len(name)} 门课程')
+        except Exception as e:
+            log(f'获取课程列表异常: {str(e)}', 'ERROR')
 
     def find_sign_task(self, i):
         aid = []
-        url = "https://mobilelearn.chaoxing.com/ppt/activeAPI/taskactivelist"
+        fid = cook[i].get('fid', 0)
+        url = "https://mobilelearn.chaoxing.com/v2/apis/active/student/activelist"
+        
         for index in range(len(allname[i])):
             payload = {
+                'fid': str(fid),
                 'courseId': str(allcourseid[i][index]),
                 'classId': str(allclassid[i][index]),
-                'uid': cook[i]['UID']
+                'showNotStartedActive': '0',
+                '_': str(int(time.time() * 1000))
             }
             time.sleep(1.5)
             log(f'用户 {i} 正在查询课程: {allname[i][index]}')
@@ -180,13 +190,17 @@ class XxSign():
             respon = res.status_code
             
             if respon == 200:
-                data = json.loads(res.text)
-                activeList = data.get('activeList', [])
-                for item in activeList:
-                    if "nameTwo" not in item:
-                        continue
-                    if item['activeType'] == 2 and item['status'] == 1:
-                        aid = item['id']
+                try:
+                    data = json.loads(res.text)
+                    activeList = data.get('data', {}).get('activeList', [])
+                    for item in activeList:
+                        if item.get('activeType') == 2 and item.get('status') == 1:
+                            aid = item.get('id', item.get('activeId'))
+                            if aid and aid not in activates:
+                                log(f'[签到] {allname[i][index]} 查询到待签到活动 活动名称:{item.get("title", "未知")} 状态:{item.get("statusName", "进行中")} aid:{aid}')
+                                self.sign(aid, i, index)
+                except Exception as e:
+                    log(f'解析签到任务异常: {str(e)}', 'ERROR')
                         if aid not in activates:
                             log(f'[签到] {allname[i][index]} 查询到待签到活动 活动名称:{item["nameOne"]} 活动状态:{item["nameTwo"]} 活动时间:{item["nameFour"]} aid:{aid}')
                             self.sign(aid, i, index)
@@ -211,7 +225,17 @@ class XxSign():
             allobjectid.append(resdict['objectId'])
 
     def sign(self, aid, i, index, retry_count=0):
-        url = "https://mobilelearn.chaoxing.com/pptSign/stuSignajax"
+        fid = cook[i].get('fid', 0)
+        
+        enc = ''
+        try:
+            enc_url = f'https://mobilelearn.chaoxing.com/v2/apis/sign/refreshQRCode?activeId={aid}'
+            enc_res = requests.get(enc_url, headers=headers, cookies=cook[i])
+            enc_data = enc_res.json()
+            if enc_data.get('data'):
+                enc = enc_data['data'].get('enc', '')
+        except Exception as e:
+            log(f'获取enc失败: {str(e)}', 'WARNING')
         
         user_sign = XxSign(i, conf) if i < len(conf['username']) else XxSign(0, conf)
         
@@ -226,6 +250,8 @@ class XxSign():
         longitude = user_sign.longitude
         latitude = user_sign.latitude
 
+        sign_url = f"https://mobilelearn.chaoxing.com/pptSign/stuSignajax?activeId={aid}&clientip=&latitude=-1&longitude=-1&appType=15&fid={fid}&enc={enc}&address={address}"
+        
         data = {
             'name': name,
             'address': address,
@@ -233,11 +259,13 @@ class XxSign():
             'uid': cook[i]['UID'],
             'longitude': longitude,
             'latitude': latitude,
-            'objectId': objectId
+            'objectId': objectId,
+            'fid': fid,
+            'enc': enc
         }
         
         try:
-            res = requests.post(url, data=data, headers=headers, cookies=cook[i], timeout=10)
+            res = requests.post(sign_url, data=data, headers=headers, cookies=cook[i], timeout=10)
             result = res.text
             log(f'用户 {i} 签到响应: {result}')
             
