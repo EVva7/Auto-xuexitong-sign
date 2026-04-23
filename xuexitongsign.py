@@ -16,7 +16,7 @@ cook = []
 allobjectid = []
 
 
-class CxSign():
+class XxSign():
     def __init__(self, num, conf):
         self.username = conf['username'][num]
         self.passwd = conf['passwd'][num]
@@ -122,7 +122,7 @@ class CxSign():
         return tokendict['_token']
 
     def upload_pic(self, i):
-        picname = CxSign(i, conf).picname if i < len(conf['username']) else ''
+        picname = XxSign(i, conf).picname if i < len(conf['username']) else ''
 
         if picname.isspace() or len(picname) == 0:
             return
@@ -137,7 +137,7 @@ class CxSign():
     def sign(self, aid, i, index):
         url = "https://mobilelearn.chaoxing.com/pptSign/stuSignajax"
         
-        user_sign = CxSign(i, conf) if i < len(conf['username']) else CxSign(0, conf)
+        user_sign = XxSign(i, conf) if i < len(conf['username']) else XxSign(0, conf)
         
         if len(user_sign.picname) == 0:
             objectId = ''
@@ -169,7 +169,7 @@ class CxSign():
         activates.append(aid)
 
     def push(self, i, index, msg):
-        user_sign = CxSign(i, conf) if i < len(conf['username']) else CxSign(0, conf)
+        user_sign = XxSign(i, conf) if i < len(conf['username']) else XxSign(0, conf)
         E_SCKEY = user_sign.SCKEY
 
         if E_SCKEY.isspace() or len(E_SCKEY) == 0:
@@ -213,17 +213,17 @@ def main_handler(event=None, context=None):
         return
     
     for n in range(number):
-        signer = CxSign(n, conf)
+        signer = XxSign(n, conf)
         signer.login()
         time.sleep(0.8)
 
     for m in range(number):
-        signer = CxSign(m, conf)
+        signer = XxSign(m, conf)
         signer.get_course(cook[m])
         time.sleep(0.8)
 
     for o in range(number):
-        signer = CxSign(o, conf)
+        signer = XxSign(o, conf)
         signer.find_sign_task(o)
 
 
@@ -238,16 +238,16 @@ if __name__ == "__main__":
     print("运行于普通模式")
     
     for n in range(number):
-        signer = CxSign(n, conf)
+        signer = XxSign(n, conf)
         signer.login()
         time.sleep(0.8)
 
     for m in range(number):
-        signer = CxSign(m, conf)
+        signer = XxSign(m, conf)
         signer.get_course(cook[m])
         time.sleep(0.8)
     
     while True:
         for o in range(number):
-            signer = CxSign(o, conf)
+            signer = XxSign(o, conf)
             signer.find_sign_task(o)

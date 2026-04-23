@@ -1,6 +1,6 @@
-# 超星学习通自动签到
+# 学习通自动签到
 
-基于 yuban10703/chaoxingsign 改编的超星学习通自动签到工具。
+基于 yuban10703/chaoxingsign 改编的学习通自动签到工具。
 
 ## 功能特性
 
@@ -61,13 +61,13 @@ cp config.json.example config.json
 ### 本地运行
 
 ```bash
-python chaoxingsign.py
+python xuexitongsign.py
 ```
 
 ### 云函数运行
 
 ```python
-from chaoxingsign import main_handler
+from xuexitongsign import main_handler
 
 main_handler(None, None)
 ```
