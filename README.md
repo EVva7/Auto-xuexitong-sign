@@ -65,21 +65,27 @@
 **实现代码：**
 ```python
 def login(self):
-    url = 'https://passport2-api.chaoxing.com/v11/loginregister'
-    data = {'uname': self.username, 'code': self.passwd}
-    session = requests.session()
-    cookie_jar = session.post(url=url, data=data, headers=headers).cookies
-    cookie_t = requests.utils.dict_from_cookiejar(cookie_jar)
-    cook.append(cookie_t)
+    url = 'http://passport2.chaoxing.com/fanyalogin'
+    my_login = Login(self.username, self.password)
+    my_login.get_information()  # AES加密
+    data = {
+        'fid': -1,
+        'uname': my_login.username,
+        'password': my_login.password,
+        'refer': 'http%253A%252F%252Fi.chaoxing.com',
+        't': True,
+        'forbidotherlogin': 0
+    }
+    res = session.post(url, headers=headers, data=data)
 ```
 
-**请求地址：** `https://passport2-api.chaoxing.com/v11/loginregister`
+**请求地址：** `http://passport2.chaoxing.com/fanyalogin`
 
 **请求参数：**
 | 参数 | 说明 |
 |------|------|
-| uname | 学习通手机号 |
-| code | 学习通密码 |
+| uname | 加密后的用户名 |
+| password | 加密后的密码 |
 
 **返回：** Cookie对象，包含UID等信息，后续请求需要携带。
 
@@ -439,7 +445,7 @@ data = {'uname': username, 'code': password}
 cookie_jar = session.post(url=url, data=data).cookies
 ```
 
-**API:** `https://passport2-api.chaoxing.com/v11/loginregister`
+**API:** `http://passport2.chaoxing.com/fanyalogin`
 
 #### 2.2 Get Course List
 
