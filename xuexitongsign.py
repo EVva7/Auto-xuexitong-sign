@@ -3,10 +3,14 @@ import json
 import time
 import datetime
 import os
+import base64
+from Crypto.Cipher import AES
 
 session = requests.session()
 headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.108 Safari/537.36'}
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0',
+    'Referer': 'http://passport2.chaoxing.com/login?fid=&newversion=true&refer=http%3A%2F%2Fi.chaoxing.com'
+}
 allname = []
 allclassid = []
 allcourseid = []
@@ -15,6 +19,7 @@ cook = []
 allobjectid = []
 
 LOG_FILE = 'sign.log'
+COOKIE_FILE = 'cookies.json'
 
 def log(message, level='INFO'):
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -24,16 +29,50 @@ def log(message, level='INFO'):
         f.write(log_msg + '\n')
 
 
+class Login:
+    def __init__(self, username, password):
+        self.username = username
+        self.password = password
+        self.block_size = 16
+        self.AES_KEY = "u2oh6Vu^HWe4_AES"
+
+    def pad(self, text):
+        text_length = len(text)
+        amount_to_pad = self.block_size - (text_length % self.block_size)
+        if amount_to_pad == 0:
+            amount_to_pad = self.block_size
+        pad = chr(amount_to_pad).encode()
+        return text + pad * amount_to_pad
+
+    def encrypt(self, text):
+        ciper = AES.new(self.AES_KEY.encode(), AES.MODE_CBC, self.AES_KEY.encode())
+        return base64.b64encode(ciper.encrypt(self.pad(text.encode()))).decode()
+
+    def get_information(self):
+        self.username = self.encrypt(self.username)
+        self.password = self.encrypt(self.password)
+
+
 class XxSign():
     def __init__(self, num, conf):
         self.username = conf['username'][num]
-        self.passwd = conf['passwd'][num]
-        self.retry_times = conf.get('retry_times', 3)[num] if isinstance(conf.get('retry_times', [3]), list) else conf.get('retry_times', 3)
+        self.passwd = conf['password'][num]
+        self.retry_times = conf.get('retry_times', [3])[num] if isinstance(conf.get('retry_times', [3]), list) else conf.get('retry_times', 3)
         
-        if len(conf.get('SCKEY', [''])) == 1:
-            self.SCKEY = conf['SCKEY'][0]
+        if len(conf.get('SENDKEY', [''])) == 1:
+            self.SENDKEY = conf['SENDKEY'][0]
         else:
-            self.SCKEY = conf['SCKEY'][num]
+            self.SENDKEY = conf['SENDKEY'][num]
+
+        if len(conf.get('TGCHATID', [''])) == 1:
+            self.TGCHATID = conf['TGCHATID'][0]
+        else:
+            self.TGCHATID = conf['TGCHATID'][num]
+
+        if len(conf.get('BOTTOKEN', [''])) == 1:
+            self.BOTTOKEN = conf['BOTTOKEN'][0]
+        else:
+            self.BOTTOKEN = conf['BOTTOKEN'][num]
 
         if len(conf.get('name', [''])) == 1:
             self.name = conf['name'][0]
@@ -63,13 +102,42 @@ class XxSign():
         self.index = num
 
     def login(self):
-        url = 'https://passport2-api.chaoxing.com/v11/loginregister'
-        data = {'uname': self.username, 'code': self.passwd}
-        session = requests.session()
-        cookie_jar = session.post(url=url, data=data, headers=headers).cookies
-        cookie_t = requests.utils.dict_from_cookiejar(cookie_jar)
+        global session
+        
+        if os.path.exists(COOKIE_FILE):
+            try:
+                with open(COOKIE_FILE, 'r') as f:
+                    session.cookies.update(json.load(f))
+                log(f'用户 {self.index} 使用缓存Cookie')
+                cookie_t = dict(session.cookies)
+                if 'UID' in cookie_t and cookie_t['UID']:
+                    cook.append(cookie_t)
+                    log(f'用户 {self.index} Cookie有效')
+                    return cookie_t
+            except:
+                pass
+        
+        url = 'http://passport2.chaoxing.com/fanyalogin'
+        my_login = Login(self.username, self.passwd)
+        my_login.get_information()
+        
+        data = {
+            'fid': -1,
+            'uname': my_login.username,
+            'password': my_login.password,
+            'refer': 'http%253A%252F%252Fi.chaoxing.com',
+            't': True,
+            'forbidotherlogin': 0
+        }
+        
+        res = session.post(url, headers=headers, data=data)
+        
+        with open(COOKIE_FILE, 'w') as f:
+            json.dump(res.cookies.get_dict(), f)
+        
+        cookie_t = res.cookies.get_dict()
         cook.append(cookie_t)
-        log(f'用户 {self.index} 获取cookie成功')
+        log(f'用户 {self.index} 登录成功，获取新Cookie')
         return cookie_t
 
     def get_course(self, cookie):
@@ -225,43 +293,68 @@ class XxSign():
 
     def push(self, i, index, msg):
         user_sign = XxSign(i, conf) if i < len(conf['username']) else XxSign(0, conf)
-        E_SCKEY = user_sign.SCKEY
+        
+        course_name = allname[i][index] if index < len(allname[i]) else 'unknown'
+        
+        self.push_serverchan(user_sign.SENDKEY, course_name, msg)
+        self.push_telegram(user_sign.TGCHATID, user_sign.BOTTOKEN, course_name, msg)
 
-        if E_SCKEY.isspace() or len(E_SCKEY) == 0:
+    def push_serverchan(self, SENDKEY, course_name, msg):
+        if not SENDKEY or SENDKEY.isspace():
+            log('SENDKEY 为空，跳过Server酱推送')
             return
+        
+        if msg == 'success':
+            title = "学习通-签到成功"
+            desp = f"{course_name} 签到成功"
+        elif msg == '您已签到过了':
+            title = "学习通-已签到过了"
+            desp = f"{course_name} 您已签到过了"
         else:
-            api = f'https://sc.ftqq.com/{E_SCKEY}.send'
-            title = "签到成功!"
-            content = f'用户: {i}\n\n课程: {allname[i][index]}\n\n签到状态: {msg}'
-            data = {
-                "text": title,
-                "desp": content
-            }
-            try:
-                requests.post(api, data=data, timeout=10)
-                log('微信推送成功')
-            except Exception as e:
-                log(f'微信推送失败: {str(e)}', 'ERROR')
+            title = "学习通-签到失败"
+            desp = f"签到失败，原因：{msg}"
+        
+        try:
+            api = f'https://sctapi.ftqq.com/{SENDKEY}.send'
+            data = {'text': title, 'desp': desp}
+            r = requests.post(api, data=data, timeout=10)
+            if r.status_code == 200:
+                log('Server酱推送成功')
+            elif r.status_code == 400:
+                log('Server酱推送失败，SENDKEY填写有误', 'ERROR')
+            else:
+                log(f'Server酱推送失败，状态码: {r.status_code}', 'ERROR')
+        except Exception as e:
+            log(f'Server酱推送异常: {str(e)}', 'ERROR')
+
+    def push_telegram(self, TGCHATID, BOTTOKEN, course_name, msg):
+        if not TGCHATID or not BOTTOKEN or TGCHATID.isspace() or BOTTOKEN.isspace():
+            return
+        
+        if msg == 'success':
+            text = f"{course_name} 签到成功"
+        elif msg == '您已签到过了':
+            text = f"{course_name} 您已签到过了"
+        else:
+            text = f"签到失败，原因：{msg}"
+        
+        try:
+            api = f'https://api.telegram.org/bot{BOTTOKEN}/sendMessage?chat_id={TGCHATID}&text={text}'
+            r = requests.get(api, timeout=10)
+            if r.status_code == 200:
+                log('Telegram推送成功')
+            elif r.status_code == 400:
+                log('Telegram推送失败，CHAT_ID填写有误', 'ERROR')
+            else:
+                log(f'Telegram推送失败，状态码: {r.status_code}', 'ERROR')
+        except Exception as e:
+            log(f'Telegram推送异常: {str(e)}', 'ERROR')
 
     def push_failed(self, i, index, msg):
         user_sign = XxSign(i, conf) if i < len(conf['username']) else XxSign(0, conf)
-        E_SCKEY = user_sign.SCKEY
-
-        if E_SCKEY.isspace() or len(E_SCKEY) == 0:
-            return
-        else:
-            api = f'https://sc.ftqq.com/{E_SCKEY}.send'
-            title = "签到失败!"
-            content = f'用户: {i}\n\n课程: {allname[i][index]}\n\n失败原因: {msg}'
-            data = {
-                "text": title,
-                "desp": content
-            }
-            try:
-                requests.post(api, data=data, timeout=10)
-                log('失败通知推送成功')
-            except Exception as e:
-                log(f'失败通知推送失败: {str(e)}', 'ERROR')
+        course_name = allname[i][index] if index < len(allname[i]) else 'unknown'
+        
+        self.push_serverchan(user_sign.SENDKEY, course_name, msg)
 
 
 def load_config():
@@ -274,6 +367,13 @@ def load_config():
                 config['retry_times'] = [3]
             elif isinstance(config['retry_times'], int):
                 config['retry_times'] = [config['retry_times']]
+            
+            if 'SENDKEY' not in config:
+                config['SENDKEY'] = ['']
+            if 'TGCHATID' not in config:
+                config['TGCHATID'] = ['']
+            if 'BOTTOKEN' not in config:
+                config['BOTTOKEN'] = ['']
             
             return config
     except FileNotFoundError:

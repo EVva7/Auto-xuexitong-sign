@@ -1,7 +1,9 @@
 {
     "username": ["YOUR_PHONE_NUMBER"],
-    "passwd": "YOUR_PASSWORD",
-    "SCKEY": ["YOUR_SERVERCHAN_KEY"],
+    "password": "YOUR_PASSWORD",
+    "SENDKEY": ["YOUR_SERVERCHAN_SENDKEY"],
+    "TGCHATID": ["YOUR_TELEGRAM_CHAT_ID"],
+    "BOTTOKEN": ["YOUR_TELEGRAM_BOT_TOKEN"],
     "name": ["YOUR_DISPLAY_NAME"],
     "address": "YOUR_ADDRESS",
     "latitude": ["32.2829260000"],

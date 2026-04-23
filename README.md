@@ -12,15 +12,17 @@
 
 ### 功能特性
 
-- ✅ 自动登录学习通
+- ✅ 自动登录学习通（支持AES加密）
 - ✅ 自动查询课程签到状态  
 - ✅ 自动完成签到
 - ✅ 支持照片签到
 - ✅ 支持位置签到
-- ✅ 支持 Server酱 推送签到结果
+- ✅ 支持 Server酱 推送签到结果（新版sctapi）
+- ✅ 支持 Telegram 推送
 - ✅ 支持多用户
 - ✅ 签到日志记录
 - ✅ 失败自动重试
+- ✅ Cookie缓存机制
 
 ### 环境要求
 
@@ -304,8 +306,10 @@ cp config.example.json config.json
 | 配置项 | 必填 | 说明 | 示例 |
 |--------|------|------|------|
 | username | ✅ | 学习通手机号 | 13800138000 |
-| passwd | ✅ | 学习通密码 | your_password |
-| SCKEY | ❌ | Server酱推送key | SCUxxxxx |
+| password | ✅ | 学习通密码 | your_password |
+| SENDKEY | ❌ | Server酱SendKey（新版） | SCTxxxxx |
+| TGCHATID | ❌ | Telegram Chat ID | 123456789 |
+| BOTTOKEN | ❌ | Telegram Bot Token | 123456:ABC-DEF |
 | name | ❌ | 签到显示的名字 | 张三 |
 | address | ❌ | 签到地址（位置签到用） | 北京市北京大学 |
 | latitude | ❌ | 纬度 | 39.9042 |
@@ -317,9 +321,11 @@ cp config.example.json config.json
 **说明：**
 - 所有配置项都可以配置多个用户，使用数组格式
 - 如果只有一个用户，可以只填一个值
-- SCKEY 用于微信推送签到结果，去 [Server酱](https://sc.ftqq.com/) 申请
+- SENDKEY 用于微信推送签到结果，去 [Server酱](https://sct.ftqq.com/) 申请（新地址）
+- TGCHATID 和 BOTTOKEN 用于Telegram推送（可选）
 - retry_times: 签到失败后自动重试的次数，默认为3次
 - sleep_time: 每次轮询之间的等待时间，默认为60秒
+- 程序会自动缓存Cookie到 cookies.json，无需每次登录
 
 ### 使用方法
 
@@ -348,6 +354,7 @@ main_handler(None, None)
 |------|------|
 | `sign.log` | 运行日志，记录程序运行状态 |
 | `sign_history.json` | 签到历史，记录每次签到结果 |
+| `cookies.json` | Cookie缓存，避免重复登录 |
 
 ### 常见问题
 
@@ -385,15 +392,17 @@ An automated sign-in tool for Xuexitong (Chaoxing) based on [yuban10703/chaoxing
 
 ### Features
 
-- ✅ Auto login to Xuexitong
+- ✅ Auto login to Xuexitong (AES encryption)
 - ✅ Auto check sign-in status
 - ✅ Auto complete sign-in
 - ✅ Photo sign-in support
 - ✅ Location sign-in support  
-- ✅ Server酱 (WeChat) push notification
+- ✅ Server酱 (WeChat) push notification (new sctapi)
+- ✅ Telegram push support
 - ✅ Multi-user support
 - ✅ Sign-in logging
 - ✅ Auto retry on failure
+- ✅ Cookie cache mechanism
 
 ### Requirements
 
@@ -567,8 +576,10 @@ Edit `config.json` with your information:
 | Config | Required | Description | Example |
 |--------|----------|-------------|---------|
 | username | ✅ | Xuexitong phone number | 13800138000 |
-| passwd | ✅ | Xuexitong password | your_password |
-| SCKEY | ❌ | Server酱 key for push | SCUxxxxx |
+| password | ✅ | Xuexitong password | your_password |
+| SENDKEY | ❌ | Server酱 SendKey (new) | SCTxxxxx |
+| TGCHATID | ❌ | Telegram Chat ID | 123456789 |
+| BOTTOKEN | ❌ | Telegram Bot Token | 123456:ABC-DEF |
 | name | ❌ | Display name | John Doe |
 | address | ❌ | Sign-in address | Peking University |
 | latitude | ❌ | Latitude | 39.9042 |
@@ -580,9 +591,11 @@ Edit `config.json` with your information:
 **Notes:**
 - All configs support multiple users in array format
 - For single user, use single value
-- SCKEY is for WeChat notifications, get it at [Server酱](https://sc.ftqq.com/)
+- SENDKEY is for WeChat notifications, get it at [Server酱](https://sct.ftqq.com/) (new API)
+- TGCHATID and BOTTOKEN for Telegram push (optional)
 - retry_times: Number of auto retries on sign-in failure, default is 3
 - sleep_time: Wait time between polls, default is 60 seconds
+- Cookie is cached in cookies.json automatically
 
 ### Usage
 
@@ -611,6 +624,7 @@ The program automatically generates the following log files:
 |------|-------------|
 | `sign.log` | Runtime log, records program status |
 | `sign_history.json` | Sign-in history, records each sign-in result |
+| `cookies.json` | Cookie cache, avoids repeated login |
 
 ### FAQ
 
